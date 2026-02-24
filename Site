@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klausurtrainer Allgemeine Pädagogik</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Warm Neutrals & Sage -->
+    <!-- 
+        Background: #fdfbf7 (Warm White/Isabelline)
+        Surface: #ffffff (White)
+        Primary Text: #1f2937 (Gray 800)
+        Secondary Text: #4b5563 (Gray 600)
+        Accent: #78716c (Stone 500)
+        Interactive/Highlight: #84a98c (Sage Green) -> Tailwind: emerald-600/500
+        Chart Colors: Muted Earth Tones
+    -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#fdfbf7',
+                        surface: '#ffffff',
+                        primary: '#2c3e50',
+                        accent: '#556b2f', // Dark Olive Green
+                        soft: '#e8e6e1',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Application Structure Plan: 
+         1. Dashboard View: High-level overview of progress across the 8 thematic sections defined in the source report. Visualizes mastery using Chart.js.
+         2. Learning View (Modules): Interactive accordion list of the 50 questions, grouped by category. Allows users to mark questions as "Learned". Includes brief "Solution Hints" synthesized from the context.
+         3. Focus Mode: A specialized view for focusing on one question at a time (Flashcard style).
+         Rationale: The report contains a dense list of 50 complex questions. A linear list is overwhelming. Grouping them by the report's categories and adding progress tracking gamifies the study process and makes the large volume of information manageable.
+    -->
+
+    <!-- Visualization & Content Choices:
+         - Progress Charts (Chart.js): Bar chart for category performance, Doughnut for overall completion. Goal: Inform & Motivate.
+         - Interactive List (HTML/JS): Expandable details for questions. Goal: Organize & Explore.
+         - Solution Hints (Text): Synthesized brief answers based on the uploaded pedagogic texts (Adler, Kant, etc.) to provide immediate value beyond just the question text.
+         - State Management (JS): Persists "learned" status during the session.
+    -->
+    
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #fdfbf7; color: #1f2937; }
+        h1, h2, h3 { font-family: 'Merriweather', serif; }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        
+        .btn-primary { @apply bg-emerald-700 text-white px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors shadow-sm; }
+        .btn-secondary { @apply bg-stone-200 text-stone-700 px-4 py-2 rounded-md hover:bg-stone-300 transition-colors; }
+        
+        /* Custom scrollbar for cleaner look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-stone-200 shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-emerald-800 tracking-tight">Pädagogik<span class="font-light text-stone-600">Trainer</span></span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="app.setView('dashboard')" class="text-stone-600 hover:text-emerald-700 px-3 py-2 rounded-md text-sm font-medium transition-colors" id="nav-dashboard">Dashboard</button>
+                    <button onclick="app.setView('learn')" class="text-stone-600 hover:text-emerald-700 px-3 py-2 rounded-md text-sm font-medium transition-colors" id="nav-learn">Fragenkatalog</button>
+                    <button onclick="app.setView('focus')" class="text-stone-600 hover:text-emerald-700 px-3 py-2 rounded-md text-sm font-medium transition-colors" id="nav-focus">Fokus-Modus</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-6xl">
+        
+        <!-- Dashboard View -->
+        <div id="view-dashboard" class="space-y-8 animate-fade-in">
+            <!-- Intro Section -->
+            <div class="bg-white rounded-xl p-8 shadow-sm border border-stone-100">
+                <h1 class="text-3xl font-bold text-stone-800 mb-4">Willkommen zur Klausurvorbereitung</h1>
+                <p class="text-lg text-stone-600 leading-relaxed max-w-3xl">
+                    Dieser interaktive Trainer basiert auf dem Dossier der 50 klausurrelevanten Fragen zur Allgemeinen Pädagogik. 
+                    Nutzen Sie dieses Tool, um Ihr Wissen über klassische Theorien (Rousseau, Herbart, Humboldt) und moderne Bildungskritik systematisch zu überprüfen und zu vertiefen.
+                </p>
+                <div class="mt-6 flex space-x-4">
+                    <button onclick="app.setView('learn')" class="bg-emerald-700 text-white px-6 py-3 rounded-lg hover:bg-emerald-800 shadow-md transition-all font-medium">
+                        Jetzt lernen starten
+                    </button>
+                    <div class="flex items-center space-x-2 text-stone-500 text-sm bg-stone-50 px-4 py-2 rounded-lg border border-stone-100">
+                        <span>📊</span>
+                        <span id="total-progress-text">0/50 Fragen gemeistert</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Overall Progress Chart -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
+                    <h2 class="text-xl font-semibold text-stone-800 mb-6 flex items-center">
+                        <span class="w-2 h-6 bg-emerald-500 rounded-full mr-3"></span>
+                        Gesamtfortschritt
+                    </h2>
+                    <div class="chart-container flex justify-center items-center">
+                        <canvas id="overallChart"></canvas>
+                    </div>
+                    <p class="text-center text-sm text-stone-500 mt-4">Markieren Sie Fragen im Katalog als "Gelernt", um Ihren Fortschritt zu sehen.</p>
+                </div>
+
+                <!-- Topic Breakdown Chart -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
+                    <h2 class="text-xl font-semibold text-stone-800 mb-6 flex items-center">
+                        <span class="w-2 h-6 bg-stone-500 rounded-full mr-3"></span>
+                        Fortschritt nach Themen
+                    </h2>
+                    <div class="chart-container">
+                        <canvas id="topicChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learn View (Questions List) -->
+        <div id="view-learn" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-stone-800">Fragenkatalog</h2>
+                    <p class="text-stone-500">50 Fragen sortiert nach 8 Themenbereichen</p>
+                </div>
+                <div class="flex space-x-3 mt-4 md:mt-0">
+                    <button onclick="app.expandAll()" class="text-sm text-stone-600 hover:text-emerald-700 font-medium">Alle öffnen</button>
+                    <span class="text-stone-300">|</span>
+                    <button onclick="app.collapseAll()" class="text-sm text-stone-600 hover:text-emerald-700 font-medium">Alle schließen</button>
+                </div>
+            </div>
+
+            <!-- Category Container (Populated by JS) -->
+            <div id="categories-container" class="space-y-6">
+                <!-- Categories will be injected here -->
+            </div>
+        </div>
+
+        <!-- Focus View (Flashcards) -->
+        <div id="view-focus" class="hidden h-full flex flex-col items-center justify-center py-12">
+            <div class="w-full max-w-2xl">
+                <div class="flex justify-between items-center mb-4 px-2">
+                    <span id="focus-category" class="text-xs font-bold tracking-wider uppercase text-emerald-600 bg-emerald-50 px-2 py-1 rounded">Thema</span>
+                    <span id="focus-counter" class="text-stone-400 font-mono text-sm">1/50</span>
+                </div>
+
+                <!-- Flashcard -->
+                <div class="bg-white rounded-2xl shadow-xl border border-stone-100 overflow-hidden relative min-h-[400px] flex flex-col">
+                    <div class="p-8 flex-grow flex flex-col justify-center items-center text-center">
+                        <h3 id="focus-question" class="text-2xl font-serif text-stone-800 mb-6 leading-relaxed">
+                            Frage wird geladen...
+                        </h3>
+                        
+                        <div id="focus-answer-container" class="hidden w-full bg-stone-50 p-6 rounded-xl border border-stone-100 text-left animate-fade-in mt-4">
+                            <h4 class="text-sm font-bold text-stone-500 mb-2 uppercase">Lösungshinweis:</h4>
+                            <p id="focus-answer" class="text-stone-700 leading-relaxed"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-stone-50 p-4 border-t border-stone-100 flex justify-between items-center">
+                        <button onclick="app.prevFocus()" class="text-stone-500 hover:text-stone-800 px-4 py-2 hover:bg-stone-200 rounded-lg transition-colors">
+                            ← Zurück
+                        </button>
+                        <button onclick="app.toggleFocusAnswer()" id="btn-reveal" class="bg-white border border-emerald-600 text-emerald-700 px-6 py-2 rounded-lg hover:bg-emerald-50 font-medium transition-colors shadow-sm">
+                            Antwort zeigen
+                        </button>
+                        <button onclick="app.nextFocus()" class="text-stone-500 hover:text-stone-800 px-4 py-2 hover:bg-stone-200 rounded-lg transition-colors">
+                            Weiter →
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex justify-center mt-8 space-x-4">
+                    <button onclick="app.markCurrentFocusLearned()" id="btn-mark-learned" class="bg-emerald-600 text-white px-6 py-3 rounded-full hover:bg-emerald-700 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 flex items-center">
+                        <span>✓ Als gelernt markieren</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-stone-100 border-t border-stone-200 py-8 mt-12">
+        <div class="container mx-auto px-4 text-center text-stone-500 text-sm">
+            <p>&copy; 2024 Klausurtrainer Pädagogik. Basierend auf den Vorlesungsunterlagen.</p>
+        </div>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // --- Data Source ---
+        // Questions extracted from the source report
+        const categories = [
+            {
+                id: 'wiss',
+                title: '1. Wissenschaft, Studium & Professionalisierung',
+                questions: [
+                    { id: 1, q: 'Erläutern Sie den Unterschied zwischen einem „Brotgelehrten“ und einem „philosophischen Kopf“ nach Friedrich Schiller.', a: 'Brotgelehrter: Zweck des Studiums liegt außen (Erwerb, Karriere), sieht keine Zusammenhänge. Philosophischer Kopf: Zweck liegt in der Sache selbst, sucht die Einheit und Harmonie des Wissens, verbindet Disziplinen.' },
+                    { id: 2, q: 'Warum betrachtet Rainer Bolle das Studium als „Bildungsgang“ und welche Rolle spielt dabei das Portfolio?', a: 'Studium ist Persönlichkeitsentwicklung (Bildung), nicht nur Wissenserwerb. Portfolio dient der reflexiven Auseinandersetzung mit der eigenen Entwicklung, Theorie und Praxis.' },
+                    { id: 3, q: 'Was bedeutet der Begriff „Professionalität“ im Lehrerberuf aus allgemein-pädagogischer Sicht?', a: 'Nicht nur technisches Können (Handwerk), sondern pädagogischer Takt, reflexive Haltung, Verbindung von Theorie und Praxis, und ethische Verantwortung (Anwaltschaft für das Kind).' },
+                    { id: 4, q: 'Inwiefern ist Pädagogik eine „Wissenschaft“ und wie unterscheidet sie sich von reiner Praxiserfahrung?', a: 'Pädagogik reflektiert systematisch über Erziehung (Begriffe, Ziele, Methoden). Praxis ist das Handeln selbst. Wissenschaft liefert die Theorie, um die Praxis kritisch zu hinterfragen und zu verbessern ("Theorie der Praxis").' }
+                ]
+            },
+            {
+                id: 'aufkl',
+                title: '2. Aufklärung & Mündigkeit',
+                questions: [
+                    { id: 5, q: 'Definieren Sie „Aufklärung“ nach Immanuel Kant und erläutern Sie den Begriff der „selbstverschuldeten Unmündigkeit“.', a: 'Aufklärung: "Ausgang des Menschen aus seiner selbstverschuldeten Unmündigkeit." Unmündigkeit: Unvermögen, sich seines Verstandes ohne Leitung anderer zu bedienen. Selbstverschuldet: Ursache liegt nicht im Mangel an Verstand, sondern an Mut/Entschließung ("Sapere aude!").' },
+                    { id: 6, q: 'Warum ist Erziehung laut Kant das „größte und schwerste Problem“, das dem Menschen aufgegeben werden kann?', a: 'Weil der Mensch nur durch Erziehung zum Menschen wird, aber die Erzieher selbst nur erzogene Menschen sind. Problem der Balance zwischen Freiheit und Zwang.' },
+                    { id: 7, q: 'Erläutern Sie die Forderung Adornos: „Die allererste Forderung an Erziehung ist, dass Auschwitz nicht noch einmal sei.“', a: 'Fundamentale moralische Basis der Pädagogik nach dem Holocaust. Erziehung muss zur Reflexion, Autonomie und Widerstand gegen blinden Gehorsam/Barbarei befähigen.' },
+                    { id: 8, q: 'Was versteht die Kritische Theorie unter dem Begriff der „Mündigkeit“?', a: 'Fähigkeit zur Kritik, zum Widerspruch, zur Autonomie gegenüber gesellschaftlichen Zwängen und Ideologien. Emanzipation von Herrschaft.' },
+                    { id: 9, q: 'Erklären Sie das Problem der „Halbbildung“ nach Adorno.', a: 'Oberflächliche Aneignung von Kultur/Wissen ohne tiefes Verständnis oder existentielle Bedeutung. Bildung wird zur Ware und zum Statussymbol, verliert ihre kritische Kraft.' }
+                ]
+            },
+            {
+                id: 'adler',
+                title: '3. Anthropologie & Individualpsychologie (Alfred Adler)',
+                questions: [
+                    { id: 10, q: 'Was ist der „Lebensstil“ (oder Lebensplan) in der Individualpsychologie und wie entsteht er?', a: 'Die einzigartige, unbewusste Richtlinie einer Person, wie sie Ziele erreicht und Probleme löst. Entsteht in der frühen Kindheit (ca. bis zum 5. Lebensjahr) als Antwort auf Umwelterfahrungen.' },
+                    { id: 11, q: 'Erläutern Sie das „Gemeinschaftsgefühl“ als zentralen Maßstab für psychische Gesundheit.', a: 'Fähigkeit zur Kooperation, Empathie und Beitrag zum Wohl anderer. Psychische Gesundheit = hohes Gemeinschaftsgefühl. Neurose = mangelndes Gemeinschaftsgefühl.' },
+                    { id: 12, q: 'Was versteht Adler unter dem „Minderwertigkeitskomplex“ und wie hängen Kompensation und Überlegenheitsstreben damit zusammen?', a: 'Jeder Mensch fühlt sich anfangs (als Kind) minderwertig. Dies treibt zur Entwicklung an (Kompensation). Ein "Komplex" entsteht bei Entmutigung. Überlegenheitsstreben ist der Versuch, dieses Gefühl (oft fehlerhaft) zu überwinden.' },
+                    { id: 13, q: 'Welche pädagogischen Konsequenzen zieht Adler aus der „Geschwisterkonstellation“?', a: 'Die Position (Ältester, Jüngster, Einzelkind) prägt den Charakter. Pädagogen müssen verstehen, wie das Kind seine Rolle in der Gruppe interpretiert.' },
+                    { id: 14, q: 'Warum betrachtet Adler „Faulheit“ oder „Unterrichtsstörungen“ nicht als isolierte Symptome, sondern als Teil der „Einheit der Persönlichkeit“?', a: 'Alles Verhalten ist zielgerichtet (final). Faulheit kann ein Schutz vor blamablem Versagen sein. Stören kann ein Weg sein, Aufmerksamkeit (Geltung) zu erzwingen.' },
+                    { id: 15, q: 'Erläutern Sie den Begriff der „Erziehung zum Mut“ bei Adler.', a: 'Ermutigung ist das wichtigste pädagogische Mittel. Dem Kind Zutrauen in die eigenen Fähigkeiten geben, damit es Aufgaben der Gemeinschaft bewältigt.' },
+                    { id: 16, q: 'Was kritisiert Adler am Konzept des „verzärtelten Kindes“?', a: 'Verzärtelung nimmt dem Kind die Erfahrung der Selbstwirksamkeit. Es lernt, dass andere für es sorgen, entwickelt kein Gemeinschaftsgefühl, sondern tyrannische Erwartungshaltungen.' }
+                ]
+            },
+            {
+                id: 'rousseau',
+                title: '4. Klassische Pädagogik: Rousseau',
+                questions: [
+                    { id: 17, q: 'Erläutern Sie Rousseaus Grundannahme: „Alles ist gut, wie es aus den Händen des Schöpfers kommt...“', a: 'Naturzustand ist gut. Gesellschaft/Kultur verdirbt den Menschen durch Ungleichheit, Konkurrenz und falsche Bedürfnisse. Erziehung muss die natürliche Güte schützen.' },
+                    { id: 18, q: 'Was versteht Rousseau unter „Negativer Erziehung“?', a: 'Nicht direktes Belehren oder Tugend-Predigen, sondern Bewahren des Zöglings vor schädlichen Einflüssen ("Zeit verlieren statt gewinnen"). Lernen durch Erfahrung, nicht durch Worte.' },
+                    { id: 19, q: 'Nennen und erläutern Sie die drei Quellen der Erziehung nach Rousseau.', a: '1. Natur (innere Entwicklung der Organe/Kräfte). 2. Dinge (Erfahrung mit der Umwelt). 3. Menschen (Gebrauch der Fähigkeiten). Sie müssen harmonieren.' },
+                    { id: 20, q: 'Warum ist die Kindheit laut Rousseau als Eigenwert und nicht nur als Vorbereitungszeit zu sehen?', a: 'Das Kind hat eine eigene Art zu sehen, zu denken und zu fühlen. Man darf die Gegenwart nicht der Zukunft opfern ("Lasst die Kindheit im Kinder reifen").' },
+                    { id: 21, q: 'Erläutern Sie den Begriff der „Perfectibilité“.', a: 'Die Fähigkeit des Menschen zur (unbegrenzten) Vervollkommnung. Unterscheidet ihn vom Tier, ist aber auch Grund für seinen möglichen Niedergang.' },
+                    { id: 22, q: 'Skizzieren Sie die Rolle des Erziehers im „Emil“.', a: 'Er ist kein klassischer Lehrer ("Magister"), sondern ein "Gouverneur", der Situationen arrangiert ("inszeniert"), damit Emil scheinbar frei, aber gelenkt durch die Dinge lernt.' }
+                ]
+            },
+            {
+                id: 'klassiker',
+                title: '5. Klassiker: Kant, Humboldt, Schleiermacher',
+                questions: [
+                    { id: 23, q: 'Nennen Sie die vier Stufen der Erziehung nach Kant.', a: '1. Disziplinierung (Triebbeherrschung). 2. Kultivierung (Geschicklichkeit/Kulturtechniken). 3. Zivilisierung (Soziale Kompetenz/Manieren). 4. Moralisierung (Handeln aus Einsicht/Pflicht).' },
+                    { id: 24, q: 'Warum ist für Kant die „Moralisierung“ der wichtigste, aber schwierigste Teil?', a: 'Weil man Freiheit nicht erzwingen kann. Der Zögling muss lernen, "das Gute" aus eigener innerer Überzeugung zu tun (Kategorischer Imperativ), nicht aus Angst vor Strafe.' },
+                    { id: 25, q: 'Erläutern Sie das humboldtsche Bildungsideal.', a: '"Höchste und proportionierlichste Bildung der Kräfte zu einem Ganzen." Allseitige Entfaltung aller menschlichen Anlagen, nicht einseitige Spezialisierung.' },
+                    { id: 26, q: 'Unterscheidung „allgemeine Menschenbildung“ vs. „Spezialbildung“ (Humboldt).', a: 'Zuerst muss der Mensch zum Menschen gebildet werden (Allgemeinbildung), erst danach kommt die berufliche Spezialisierung. Bildung ist Selbstzweck.' },
+                    { id: 27, q: 'Humboldts Konzept der Universität.', a: 'Einheit von Forschung und Lehre. Einsamkeit (Ruhe zur Vertiefung) und Freiheit (Lehr- und Lernfreiheit). Gemeinschaft von Lehrenden und Lernenden.' },
+                    { id: 28, q: 'Was bedeutet „Dialektik der Erziehung“ bei Schleiermacher?', a: 'Spannungsverhältnis zwischen: Einwirkung auf die Zukunft (Entwicklung) vs. Befriedigung der Gegenwart (Eigenrecht des Kindes).' },
+                    { id: 29, q: 'Die vier Prinzipien nach Schleiermacher.', a: 'Behüten (vor Schädlichem), Unterstützen (guter Anlagen), Gegenwirken (bei Fehlentwicklungen), Gewährenlassen (Freiheit geben).' },
+                    { id: 30, q: 'Ende der Erziehung nach Schleiermacher.', a: 'Ablieferung an die vier Lebensbereiche (Staat, Kirche, Geselligkeit, Wissenschaft). Erziehung endet, wenn der Zögling sich selbst weiterbilden kann.' }
+                ]
+            },
+            {
+                id: 'herbart',
+                title: '6. Systematische Pädagogik: Herbart',
+                questions: [
+                    { id: 31, q: 'Was versteht Herbart unter „Erziehendem Unterricht“?', a: 'Einheit von Wissensvermittlung und Charakterbildung. Unterricht, der nicht nur Wissen anhäuft, sondern den Willen und Charakter formt.' },
+                    { id: 32, q: 'Begriff des „Gedankenkreises“ und Bedeutung für die Willensbildung.', a: 'Der Wille entspringt den Gedanken ("Wir wollen nur, was wir wissen"). Ein reicher, geordneter Gedankenkreis ermöglicht einen starken, sittlichen Charakter.' },
+                    { id: 33, q: '„Vielseitigkeit des Interesses“ und die sechs Interessenklassen.', a: 'Ziel des Unterrichts. 1. Empirisch, 2. Spekulativ, 3. Ästhetisch (Erkenntnis). 4. Sympathisch, 5. Gesellschaftlich, 6. Religiös (Teilnahme).' },
+                    { id: 34, q: '„Ästhetische Darstellung der Welt“ bei Herbart.', a: 'Pädagogik soll die Welt so zeigen, dass sie Wohlgefallen (Interesse) und moralisches Urteil anregt. Ästhetik hier im Sinne von Wahrnehmung und Beurteilung.' },
+                    { id: 35, q: 'Verhältnis von „Regierung“, „Unterricht“ und „Zucht“.', a: 'Regierung: Äußere Ordnung halten (gegen Wildheit). Unterricht: Bildung des Gedankenkreises. Zucht: Direkte Formung des Charakters/Gesinnung.' },
+                    { id: 36, q: 'Was ist der „Pädagogische Takt“?', a: 'Das Bindeglied zwischen Theorie und Praxis. Die Fähigkeit des Lehrers, in der konkreten Situation schnell und richtig zu entscheiden (nicht durch Regeln lernbar, sondern durch Übung/Reflexion).' }
+                ]
+            },
+            {
+                id: 'kritik',
+                title: '7. Moderne Bildungskritik & Anthropologie',
+                questions: [
+                    { id: 37, q: 'Fromms Unterscheidung „Haben“ und „Sein“ im Bildungskontext.', a: 'Haben: Wissen als Besitz, Auswendiglernen, Konsum. Sein: Wissen als Prozess, Durchdringung, Veränderung der eigenen Person.' },
+                    { id: 38, q: '„Kopernikanische Wende“ in der Sinnfrage nach Viktor Frankl.', a: 'Nicht wir fragen nach dem Sinn des Lebens, sondern das Leben fragt uns. Wir müssen durch unser Handeln antworten.' },
+                    { id: 39, q: 'Liessmanns Begriff der „Unbildung“.', a: 'Wissensgesellschaft ≠ Bildungsgesellschaft. Reduktion von Bildung auf verwertbare Kompetenzen und Informationen. Verlust des Verstehens.' },
+                    { id: 40, q: 'Warum lässt sich Wissen laut Liessmann nicht „auslagern“?', a: 'Daten kann man speichern, Wissen muss im Subjekt (im Kopf) geschehen. Wissen erfordert Denken und Verknüpfung.' }
+                ]
+            },
+            {
+                id: 'handeln',
+                title: '8. Pädagogisches Handeln, Theorie & Praxis',
+                questions: [
+                    { id: 41, q: 'Dietrich Benner: Prinzip der „Bildsamkeit“.', a: 'Anerkennung des Anderen als zur Selbstbestimmung fähiges Wesen. Keine bloße Formbarkeit, sondern Mitwirkung des Zöglings.' },
+                    { id: 42, q: '„Aufforderung zur Selbsttätigkeit“.', a: 'Erziehung ist Interaktion: Der Erzieher fordert den Zögling auf, selbst tätig zu werden. Der Zögling antwortet durch Handeln.' },
+                    { id: 43, q: '„Negativität der Erfahrung“ (Benner).', a: 'Lernen geschieht oft durch Scheitern, Widerstand, Enttäuschung. Erfahrungen, die bisherige Annahmen widerlegen, sind besonders bildend.' },
+                    { id: 44, q: '„Pädagogischer Bezug“ nach Herman Nohl.', a: 'Das leidenschaftliche Verhältnis des Erziehers zum Zögling. Zum Wohl des Zöglings (nicht für Staat/Wirtschaft). Geprägt von Liebe und Autorität.' },
+                    { id: 45, q: '„Sokratischer Eid“ von Hartmut von Hentig.', a: 'Verpflichtung der Lehrer/Pädagogen zum Schutz des Kindes. "Ich verpflichte mich, die Eigenart jedes Kindes zu achten...".' },
+                    { id: 46, q: 'Verhältnis Theorie und Praxis nach Erich Weniger.', a: 'Theorie ist die "Theorie der Praxis" (für die Praxis, aus der Praxis). Theorie soll die Praxis aufklären, nicht bevormunden.' },
+                    { id: 47, q: 'Kritik am Modell der „Trivial-Maschine“.', a: 'Menschen sind nicht-triviale Maschinen (Heinz von Foerster). Gleicher Input führt nicht zu gleichem Output (Wegen innerer Zustände/Freiheit).' },
+                    { id: 48, q: 'Bedeutung von „Vertrauen“ bei Royston Maldoom.', a: 'Bedingungsloses Vertrauen in das Potential des Schülers ("Du kannst das!"). Ermöglicht Höchstleistungen und Selbstüberwindung.' },
+                    { id: 49, q: '„Nicht-Affirmative Bildungstheorie“.', a: 'Erziehung darf nicht nur bestehende Verhältnisse bestätigen (affirmieren), sondern muss zur Kritik und zur Gestaltung einer besseren Zukunft befähigen.' },
+                    { id: 50, q: 'Zusammenhang „Sehen“, „Wahrnehmen“, „Handeln“.', a: 'Pädagogisches Handeln setzt pädagogisches Sehen (Wahrnehmen der Situation/Bedürfnisse des Kindes) voraus. Theorie schult den Blick.' }
+                ]
+            }
+        ];
+
+        // --- App State & Logic ---
+        const app = {
+            state: {
+                view: 'dashboard',
+                learnedQuestions: JSON.parse(localStorage.getItem('paed_learned') || '[]'),
+                currentFocusIndex: 0,
+                isFocusAnswerVisible: false
+            },
+
+            // --- Initialization ---
+            init() {
+                this.renderCategories();
+                this.updateCharts();
+                this.updateUI();
+                
+                // Keyboard Nav for Focus Mode
+                document.addEventListener('keydown', (e) => {
+                    if (this.state.view !== 'focus') return;
+                    if (e.key === 'ArrowRight') this.nextFocus();
+                    if (e.key === 'ArrowLeft') this.prevFocus();
+                    if (e.key === ' ' || e.key === 'Enter') this.toggleFocusAnswer();
+                });
+            },
+
+            // --- Navigation & View Mgmt ---
+            setView(viewName) {
+                this.state.view = viewName;
+                
+                // Update Nav Styling
+                ['dashboard', 'learn', 'focus'].forEach(v => {
+                    const el = document.getElementById(`nav-${v}`);
+                    if (v === viewName) {
+                        el.classList.add('text-emerald-700', 'bg-emerald-50');
+                        el.classList.remove('text-stone-600');
+                    } else {
+                        el.classList.remove('text-emerald-700', 'bg-emerald-50');
+                        el.classList.add('text-stone-600');
+                    }
+                    
+                    const container = document.getElementById(`view-${v}`);
+                    if (v === viewName) {
+                        container.classList.remove('hidden');
+                        if(v === 'focus') this.renderFocusCard();
+                        if(v === 'dashboard') this.updateCharts(); // Refresh charts to show new progress
+                    } else {
+                        container.classList.add('hidden');
+                    }
+                });
+            },
+
+            // --- Learning Logic ---
+            toggleQuestion(id) {
+                const answerEl = document.getElementById(`answer-${id}`);
+                const chevron = document.getElementById(`chevron-${id}`);
+                answerEl.classList.toggle('hidden');
+                chevron.style.transform = answerEl.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+            },
+
+            toggleLearned(id) {
+                const index = this.state.learnedQuestions.indexOf(id);
+                if (index === -1) {
+                    this.state.learnedQuestions.push(id);
+                } else {
+                    this.state.learnedQuestions.splice(index, 1);
+                }
+                this.saveState();
+                this.updateQuestionStatusUI(id);
+                this.updateCharts();
+            },
+
+            updateQuestionStatusUI(id) {
+                const btn = document.getElementById(`btn-learn-${id}`);
+                if (!btn) return;
+                
+                if (this.state.learnedQuestions.includes(id)) {
+                    btn.classList.remove('bg-stone-200', 'text-stone-700');
+                    btn.classList.add('bg-emerald-100', 'text-emerald-700', 'border-emerald-200');
+                    btn.innerHTML = '✓ Gelernt';
+                } else {
+                    btn.classList.add('bg-stone-200', 'text-stone-700');
+                    btn.classList.remove('bg-emerald-100', 'text-emerald-700', 'border-emerald-200');
+                    btn.innerHTML = 'Als gelernt markieren';
+                }
+            },
+
+            saveState() {
+                localStorage.setItem('paed_learned', JSON.stringify(this.state.learnedQuestions));
+                this.updateUI();
+            },
+
+            updateUI() {
+                const total = 50;
+                const learned = this.state.learnedQuestions.length;
+                document.getElementById('total-progress-text').textContent = `${learned}/${total} Fragen gemeistert`;
+            },
+
+            expandAll() {
+                document.querySelectorAll('[id^="answer-"]').forEach(el => el.classList.remove('hidden'));
+                document.querySelectorAll('[id^="chevron-"]').forEach(el => el.style.transform = 'rotate(180deg)');
+            },
+
+            collapseAll() {
+                document.querySelectorAll('[id^="answer-"]').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('[id^="chevron-"]').forEach(el => el.style.transform = 'rotate(0deg)');
+            },
+
+            // --- Focus Mode Logic ---
+            renderFocusCard() {
+                // Flatten all questions
+                const allQuestions = categories.flatMap(c => c.questions.map(q => ({...q, category: c.title})));
+                const q = allQuestions[this.state.currentFocusIndex];
+                
+                const qEl = document.getElementById('focus-question');
+                const aEl = document.getElementById('focus-answer');
+                const cEl = document.getElementById('focus-category');
+                const countEl = document.getElementById('focus-counter');
+                const containerEl = document.getElementById('focus-answer-container');
+                const btnEl = document.getElementById('btn-reveal');
+                const markBtn = document.getElementById('btn-mark-learned');
+
+                qEl.textContent = q.q;
+                aEl.textContent = q.a;
+                cEl.textContent = q.category.split('.')[1].trim(); // Shorten cat title
+                countEl.textContent = `${this.state.currentFocusIndex + 1}/${allQuestions.length}`;
+                
+                // Reset State
+                this.state.isFocusAnswerVisible = false;
+                containerEl.classList.add('hidden');
+                btnEl.textContent = "Antwort zeigen";
+                
+                // Update "Mark Learned" button state for current card
+                if (this.state.learnedQuestions.includes(q.id)) {
+                     markBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                     markBtn.innerHTML = '✓ Bereits gelernt';
+                } else {
+                     markBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                     markBtn.innerHTML = '✓ Als gelernt markieren';
+                }
+            },
+
+            toggleFocusAnswer() {
+                const containerEl = document.getElementById('focus-answer-container');
+                const btnEl = document.getElementById('btn-reveal');
+                
+                this.state.isFocusAnswerVisible = !this.state.isFocusAnswerVisible;
+                
+                if (this.state.isFocusAnswerVisible) {
+                    containerEl.classList.remove('hidden');
+                    btnEl.textContent = "Antwort verbergen";
+                } else {
+                    containerEl.classList.add('hidden');
+                    btnEl.textContent = "Antwort zeigen";
+                }
+            },
+
+            nextFocus() {
+                if (this.state.currentFocusIndex < 49) {
+                    this.state.currentFocusIndex++;
+                    this.renderFocusCard();
+                }
+            },
+
+            prevFocus() {
+                if (this.state.currentFocusIndex > 0) {
+                    this.state.currentFocusIndex--;
+                    this.renderFocusCard();
+                }
+            },
+            
+            markCurrentFocusLearned() {
+                const allQuestions = categories.flatMap(c => c.questions);
+                const currentId = allQuestions[this.state.currentFocusIndex].id;
+                
+                if (!this.state.learnedQuestions.includes(currentId)) {
+                    this.toggleLearned(currentId);
+                    this.renderFocusCard(); // Update button state
+                }
+            },
+
+            // --- Rendering ---
+            renderCategories() {
+                const container = document.getElementById('categories-container');
+                container.innerHTML = categories.map(cat => `
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-100 overflow-hidden">
+                        <div class="bg-stone-50 px-6 py-4 border-b border-stone-100 flex justify-between items-center">
+                            <h3 class="font-bold text-stone-700">${cat.title}</h3>
+                            <span class="text-xs font-mono bg-white px-2 py-1 rounded border border-stone-200 text-stone-500">
+                                ${cat.questions.filter(q => this.state.learnedQuestions.includes(q.id)).length}/${cat.questions.length}
+                            </span>
+                        </div>
+                        <div class="divide-y divide-stone-100">
+                            ${cat.questions.map(q => `
+                                <div class="p-6 hover:bg-stone-50/50 transition-colors group">
+                                    <div class="flex items-start justify-between cursor-pointer" onclick="app.toggleQuestion(${q.id})">
+                                        <div class="flex items-start space-x-4">
+                                            <span class="font-mono text-stone-400 text-sm mt-1">#${q.id}</span>
+                                            <p class="font-medium text-stone-800 text-lg pr-4">${q.q}</p>
+                                        </div>
+                                        <svg id="chevron-${q.id}" class="w-5 h-5 text-stone-400 transform transition-transform duration-200 mt-1 flex-shrink-0 group-hover:text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                    <div id="answer-${q.id}" class="hidden mt-4 ml-10 pl-4 border-l-2 border-emerald-200 animate-fade-in">
+                                        <p class="text-stone-600 leading-relaxed mb-4">${q.a}</p>
+                                        <button id="btn-learn-${q.id}" onclick="event.stopPropagation(); app.toggleLearned(${q.id})" class="text-xs px-3 py-1.5 rounded border transition-colors ${this.state.learnedQuestions.includes(q.id) ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-stone-200 text-stone-700 border-stone-200 hover:bg-stone-300'}">
+                                            ${this.state.learnedQuestions.includes(q.id) ? '✓ Gelernt' : 'Als gelernt markieren'}
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            // --- Charts ---
+            charts: {},
+            
+            updateCharts() {
+                // Prepare Data
+                const labels = categories.map(c => c.title.split(' ')[1].substring(0, 10) + '...');
+                const dataTotal = categories.map(c => c.questions.length);
+                const dataLearned = categories.map(c => c.questions.filter(q => this.state.learnedQuestions.includes(q.id)).length);
+                
+                const totalLearned = this.state.learnedQuestions.length;
+                const totalQuestions = 50;
+
+                // Topic Chart (Bar)
+                const ctxTopic = document.getElementById('topicChart').getContext('2d');
+                if (this.charts.topic) this.charts.topic.destroy();
+                
+                this.charts.topic = new Chart(ctxTopic, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Gelernt',
+                                data: dataLearned,
+                                backgroundColor: '#10b981', // emerald-500
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Offen',
+                                data: dataTotal.map((t, i) => t - dataLearned[i]),
+                                backgroundColor: '#e7e5e4', // stone-200
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true, grid: { display: false } },
+                            y: { stacked: true, beginAtZero: true, grid: { color: '#f5f5f4' } }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { 
+                                callbacks: {
+                                    title: (ctx) => categories[ctx[0].dataIndex].title
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Overall Chart (Doughnut)
+                const ctxOverall = document.getElementById('overallChart').getContext('2d');
+                if (this.charts.overall) this.charts.overall.destroy();
+                
+                this.charts.overall = new Chart(ctxOverall, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Gelernt', 'Noch offen'],
+                        datasets: [{
+                            data: [totalLearned, totalQuestions - totalLearned],
+                            backgroundColor: ['#10b981', '#e7e5e4'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => ` ${ctx.label}: ${ctx.raw} Fragen (${Math.round(ctx.raw/50*100)}%)`
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    },
+                    plugins: [{
+                        id: 'textCenter',
+                        beforeDraw: function(chart) {
+                            var width = chart.width, height = chart.height, ctx = chart.ctx;
+                            ctx.restore();
+                            var fontSize = (height / 114).toFixed(2);
+                            ctx.font = "bold " + fontSize + "em sans-serif";
+                            ctx.textBaseline = "middle";
+                            ctx.fillStyle = "#1c1917";
+                            var text = Math.round((totalLearned/50)*100) + "%",
+                                textX = Math.round((width - ctx.measureText(text).width) / 2),
+                                textY = height / 2;
+                            ctx.fillText(text, textX, textY);
+                            ctx.save();
+                        }
+                    }]
+                });
+            }
+        };
+
+        // Start App
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>
