@@ -18,11 +18,11 @@
             background-size: 20px 20px;
         }
 
-        /* Design für die Schriftrolle */
+        /* Design für die Schriftrolle (FIX: margin: 0 auto entfernt, width: 100% hinzugefügt) */
         .scroll-wrapper {
             position: relative;
+            width: 100%;
             max-width: 800px;
-            margin: 0 auto;
             padding: 2rem 0;
             filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
         }
@@ -121,143 +121,147 @@
         </button>
     </div>
 
-    <!-- Die Schriftrolle (Dieser Bereich wird als PDF gedruckt) -->
-    <div class="scroll-wrapper" id="pdf-content">
-        <!-- Obere Holzstange -->
-        <div class="scroll-top no-print"></div>
+    <!-- NEU: Der äußere Container, der das Element zentriert, damit html2pdf den Rand nicht abschneidet -->
+    <div class="flex justify-center w-full pb-12">
+        
+        <!-- Die Schriftrolle (Dieser Bereich wird als PDF gedruckt) -->
+        <div class="scroll-wrapper" id="pdf-content">
+            <!-- Obere Holzstange -->
+            <div class="scroll-top no-print"></div>
 
-        <!-- Das Papier -->
-        <div class="scroll-paper">
-            <div class="text-center mb-10">
-                <h1 class="text-4xl md:text-5xl font-bold text-[#5c3a21] mb-2" style="font-family: 'Aptos Serif', Georgia, serif;">Mein Rechercheleitfaden</h1>
-                <div class="h-1 w-32 mx-auto bg-[#8b5a2b] rounded"></div>
+            <!-- Das Papier -->
+            <div class="scroll-paper">
+                <div class="text-center mb-10">
+                    <h1 class="text-4xl md:text-5xl font-bold text-[#5c3a21] mb-2" style="font-family: 'Aptos Serif', Georgia, serif;">Mein Rechercheleitfaden</h1>
+                    <div class="h-1 w-32 mx-auto bg-[#8b5a2b] rounded"></div>
+                </div>
+
+                <!-- Name des Schülers -->
+                <div class="mb-8 flex items-end">
+                    <span class="text-lg font-bold text-[#5c3a21] mr-3 w-32">Mein Name:</span>
+                    <div class="editable-field flex-1 text-lg font-medium" contenteditable="true" data-placeholder="Klicke hier, um deinen Namen einzutragen..."></div>
+                </div>
+
+                <!-- Die 10 Recherche-Regeln -->
+                <div class="space-y-8">
+                    <p class="text-[#8b5a2b] font-medium mb-6 text-center text-lg">Meine 10 wichtigsten Regeln für eine gute Recherche:</p>
+
+                    <!-- Punkt 1 -->
+                    <div class="point-container">
+                        <div class="flex items-end mb-2">
+                            <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">1.</span>
+                            <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Regel (z.B. 2-Quellen-Prinzip)"></div>
+                        </div>
+                        <div class="pl-8">
+                            <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Was heißt das? (z.B. Ich suche meine Informationen immer auf zwei unabhängigen Seiten...)"></div>
+                        </div>
+                    </div>
+
+                    <!-- Punkt 2 -->
+                    <div class="point-container">
+                        <div class="flex items-end mb-2">
+                            <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">2.</span>
+                            <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Zweite Regel hier eintragen..."></div>
+                        </div>
+                        <div class="pl-8">
+                            <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
+                        </div>
+                    </div>
+
+                    <!-- Punkt 3 -->
+                    <div class="point-container">
+                        <div class="flex items-end mb-2">
+                            <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">3.</span>
+                            <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Dritte Regel hier eintragen..."></div>
+                        </div>
+                        <div class="pl-8">
+                            <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
+                        </div>
+                    </div>
+
+                    <!-- Punkt 4 -->
+                    <div class="point-container">
+                        <div class="flex items-end mb-2">
+                            <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">4.</span>
+                            <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Vierte Regel hier eintragen..."></div>
+                        </div>
+                        <div class="pl-8">
+                            <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
+                        </div>
+                    </div>
+
+                    <!-- Punkt 5 -->
+                    <div class="point-container">
+                        <div class="flex items-end mb-2">
+                            <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">5.</span>
+                            <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Fünfte Regel hier eintragen..."></div>
+                        </div>
+                        <div class="pl-8">
+                            <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
+                        </div>
+                    </div>
+
+                    <!-- Punkt 6 -->
+                    <div class="point-container">
+                        <div class="flex items-end mb-2">
+                            <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">6.</span>
+                            <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Sechste Regel hier eintragen..."></div>
+                        </div>
+                        <div class="pl-8">
+                            <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
+                        </div>
+                    </div>
+
+                    <!-- Punkt 7 -->
+                    <div class="point-container">
+                        <div class="flex items-end mb-2">
+                            <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">7.</span>
+                            <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Siebte Regel hier eintragen..."></div>
+                        </div>
+                        <div class="pl-8">
+                            <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
+                        </div>
+                    </div>
+
+                    <!-- Punkt 8 -->
+                    <div class="point-container">
+                        <div class="flex items-end mb-2">
+                            <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">8.</span>
+                            <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Achte Regel hier eintragen..."></div>
+                        </div>
+                        <div class="pl-8">
+                            <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
+                        </div>
+                    </div>
+
+                    <!-- Punkt 9 -->
+                    <div class="point-container">
+                        <div class="flex items-end mb-2">
+                            <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">9.</span>
+                            <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Neunte Regel hier eintragen..."></div>
+                        </div>
+                        <div class="pl-8">
+                            <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
+                        </div>
+                    </div>
+
+                    <!-- Punkt 10 -->
+                    <div class="point-container">
+                        <div class="flex items-end mb-2">
+                            <span class="text-xl font-bold text-[#5c3a21] mr-2 w-8">10.</span>
+                            <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Zehnte Regel hier eintragen..."></div>
+                        </div>
+                        <div class="pl-10">
+                            <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
-            <!-- Name des Schülers -->
-            <div class="mb-8 flex items-end">
-                <span class="text-lg font-bold text-[#5c3a21] mr-3 w-32">Mein Name:</span>
-                <div class="editable-field flex-1 text-lg font-medium" contenteditable="true" data-placeholder="Klicke hier, um deinen Namen einzutragen..."></div>
-            </div>
-
-            <!-- Die 10 Recherche-Regeln -->
-            <div class="space-y-8">
-                <p class="text-[#8b5a2b] font-medium mb-6 text-center text-lg">Meine 10 wichtigsten Regeln für eine gute Recherche:</p>
-
-                <!-- Punkt 1 -->
-                <div class="point-container">
-                    <div class="flex items-end mb-2">
-                        <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">1.</span>
-                        <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Regel (z.B. 2-Quellen-Prinzip)"></div>
-                    </div>
-                    <div class="pl-8">
-                        <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Was heißt das? (z.B. Ich suche meine Informationen immer auf zwei unabhängigen Seiten...)"></div>
-                    </div>
-                </div>
-
-                <!-- Punkt 2 -->
-                <div class="point-container">
-                    <div class="flex items-end mb-2">
-                        <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">2.</span>
-                        <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Zweite Regel hier eintragen..."></div>
-                    </div>
-                    <div class="pl-8">
-                        <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
-                    </div>
-                </div>
-
-                <!-- Punkt 3 -->
-                <div class="point-container">
-                    <div class="flex items-end mb-2">
-                        <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">3.</span>
-                        <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Dritte Regel hier eintragen..."></div>
-                    </div>
-                    <div class="pl-8">
-                        <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
-                    </div>
-                </div>
-
-                <!-- Punkt 4 -->
-                <div class="point-container">
-                    <div class="flex items-end mb-2">
-                        <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">4.</span>
-                        <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Vierte Regel hier eintragen..."></div>
-                    </div>
-                    <div class="pl-8">
-                        <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
-                    </div>
-                </div>
-
-                <!-- Punkt 5 -->
-                <div class="point-container">
-                    <div class="flex items-end mb-2">
-                        <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">5.</span>
-                        <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Fünfte Regel hier eintragen..."></div>
-                    </div>
-                    <div class="pl-8">
-                        <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
-                    </div>
-                </div>
-
-                <!-- Punkt 6 -->
-                <div class="point-container">
-                    <div class="flex items-end mb-2">
-                        <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">6.</span>
-                        <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Sechste Regel hier eintragen..."></div>
-                    </div>
-                    <div class="pl-8">
-                        <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
-                    </div>
-                </div>
-
-                <!-- Punkt 7 -->
-                <div class="point-container">
-                    <div class="flex items-end mb-2">
-                        <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">7.</span>
-                        <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Siebte Regel hier eintragen..."></div>
-                    </div>
-                    <div class="pl-8">
-                        <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
-                    </div>
-                </div>
-
-                <!-- Punkt 8 -->
-                <div class="point-container">
-                    <div class="flex items-end mb-2">
-                        <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">8.</span>
-                        <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Achte Regel hier eintragen..."></div>
-                    </div>
-                    <div class="pl-8">
-                        <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
-                    </div>
-                </div>
-
-                <!-- Punkt 9 -->
-                <div class="point-container">
-                    <div class="flex items-end mb-2">
-                        <span class="text-xl font-bold text-[#5c3a21] mr-2 w-6">9.</span>
-                        <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Neunte Regel hier eintragen..."></div>
-                    </div>
-                    <div class="pl-8">
-                        <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
-                    </div>
-                </div>
-
-                <!-- Punkt 10 -->
-                <div class="point-container">
-                    <div class="flex items-end mb-2">
-                        <span class="text-xl font-bold text-[#5c3a21] mr-2 w-8">10.</span>
-                        <div class="editable-field flex-1 text-lg font-bold text-[#8b5a2b]" contenteditable="true" data-placeholder="Zehnte Regel hier eintragen..."></div>
-                    </div>
-                    <div class="pl-10">
-                        <div class="editable-field text-[#2c3e50]" contenteditable="true" data-placeholder="Erkläre hier, was diese Regel bedeutet..."></div>
-                    </div>
-                </div>
-
-            </div>
+            <!-- Untere Holzstange -->
+            <div class="scroll-bottom no-print"></div>
         </div>
-
-        <!-- Untere Holzstange -->
-        <div class="scroll-bottom no-print"></div>
     </div>
 
     <script>
@@ -268,19 +272,18 @@
             btn.innerHTML = 'PDF wird erstellt...';
             btn.disabled = true;
 
-            // Das Element auswählen, das als PDF gespeichert werden soll
             const element = document.getElementById('pdf-content');
             
             // Konfiguration für html2pdf
             const opt = {
-                margin:       0, // Ränder auf 0, da wir das Design der Schriftrolle behalten wollen
+                margin:       10, // Leicht erhöht (10mm), damit die Holzstangen, die negativ abstehen, nicht ganz abgeschnitten werden
                 filename:     'Mein_Rechercheleitfaden.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { 
-                    scale: 2, // Höhere Auflösung
+                    scale: 2, 
                     useCORS: true,
                     logging: false,
-                    scrollY: 0
+                    windowWidth: 800 // Verhindert, dass das PDF im Handy-Layout exportiert wird
                 },
                 jsPDF:        { 
                     unit: 'mm', 
@@ -294,6 +297,13 @@
                 // Button wiederherstellen
                 btn.innerHTML = originalText;
                 btn.disabled = false;
+            }).catch(err => {
+                console.error("PDF Fehler: ", err);
+                btn.innerHTML = "Fehler aufgetreten";
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 3000);
             });
         }
     </script>
